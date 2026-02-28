@@ -36,4 +36,4 @@ In Copilot Studio (in your AI Agent):
 - In tools, add a MCP server with the ngrok URL as Server URL.
 - Connect and configure it and the AI agent will have access to all burp mcp tools and can access the burp suite, its logs, tabs, etc.
 
-
+Happy Hacking!
