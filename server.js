@@ -1,26 +1,41 @@
 const { spawn } = require('child_process');
 const express = require('express');
-const app = express();
-app.use(express.json());
 
 const VERBOSE = process.argv.includes('--verbose');
 const BURP_PORT = 9876;
 const BRIDGE_PORT = 8080;
 
+const app = express();
+app.use(express.json());
+
 const mcpProxy = spawn('java', ['-jar', 'mcp-proxy.jar', '--sse-url', `http://127.0.0.1:${BURP_PORT}`]);
 
-let pendingResponse = null;
+const pendingResponses = new Map();
 
-mcpProxy.stdout.on('data', (data) => {
-    const output = data.toString().trim();
-    
-    if (VERBOSE) {
-        console.log(`[JAR Output]: ${output}`);
-    }
+let stdoutBuffer = '';
 
-    if (pendingResponse) {
-        pendingResponse.send(output);
-        pendingResponse = null;
+mcpProxy.stdout.on('data', (chunk) => {
+    stdoutBuffer += chunk.toString();
+
+    let newlineIndex;
+    while ((newlineIndex = stdoutBuffer.indexOf('\n')) !== -1) {
+        const line = stdoutBuffer.slice(0, newlineIndex).trim();
+        stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
+
+        if (!line) continue;
+
+        if (VERBOSE) console.log(`[JAR Output]: ${line}`);
+
+        try {
+            const parsed = JSON.parse(line);
+            const res = pendingResponses.get(parsed.id);
+            if (res) {
+                pendingResponses.delete(parsed.id);
+                res.json(parsed);
+            }
+        } catch {
+            console.error(`[JAR Parse Error]: Could not parse line: ${line}`);
+        }
     }
 });
 
@@ -35,20 +50,21 @@ app.get('/sse', (req, res) => {
 });
 
 app.post('/', (req, res) => {
-    if (VERBOSE) {
-        console.log(`==> Method: ${req.body.method}`);
-    }
-    
-    mcpProxy.stdin.write(JSON.stringify(req.body) + '\n');
+    const { body } = req;
 
-    if (req.body.method.includes('notifications/') || !req.body.id) {
-        res.status(202).send(); 
+    if (VERBOSE) console.log(`==> Method: ${body.method}`);
+
+    mcpProxy.stdin.write(JSON.stringify(body) + '\n');
+
+    const isNotification = body.method?.startsWith('notifications/') || !body.id;
+    if (isNotification) {
+        res.status(202).send();
     } else {
-        pendingResponse = res; 
+        pendingResponses.set(body.id, res);
     }
 });
 
 app.listen(BRIDGE_PORT, () => {
-    console.log(`Final Bridge running on ${BRIDGE_PORT}`);
-    console.log(`Logging level: ${VERBOSE ? 'VERBOSE' : 'QUIET (use --verbose for full output)'}`);
+    console.log(`Bridge running on port ${BRIDGE_PORT}`);
+    console.log(`Logging: ${VERBOSE ? 'VERBOSE' : 'QUIET (--verbose for full output)'}`);
 });
