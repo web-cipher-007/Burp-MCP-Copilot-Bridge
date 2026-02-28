@@ -3,19 +3,29 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-const mcpProxy = spawn('java', ['-jar', 'mcp-proxy.jar', '--sse-url', 'http://127.0.0.1:9876']);
+const VERBOSE = process.argv.includes('--verbose');
+const BURP_PORT = 9876;
+const BRIDGE_PORT = 8080;
+
+const mcpProxy = spawn('java', ['-jar', 'mcp-proxy.jar', '--sse-url', `http://127.0.0.1:${BURP_PORT}`]);
 
 let pendingResponse = null;
 
 mcpProxy.stdout.on('data', (data) => {
     const output = data.toString().trim();
-    console.log(`JAR Output: ${output}`);
+    
+    if (VERBOSE) {
+        console.log(`[JAR Output]: ${output}`);
+    }
 
-    // Only send the response back if we have an active HTTP request waiting
     if (pendingResponse) {
         pendingResponse.send(output);
         pendingResponse = null;
     }
+});
+
+mcpProxy.stderr.on('data', (data) => {
+    console.error(`[JAR Error]: ${data}`);
 });
 
 app.get('/sse', (req, res) => {
@@ -25,18 +35,20 @@ app.get('/sse', (req, res) => {
 });
 
 app.post('/', (req, res) => {
-    console.log(`==> Method: ${req.body.method}`);
+    if (VERBOSE) {
+        console.log(`==> Method: ${req.body.method}`);
+    }
     
-    // 1. Send the command to the JAR
     mcpProxy.stdin.write(JSON.stringify(req.body) + '\n');
 
-    // 2. Decide if we should wait for a response
-    // Notifications (like 'notifications/initialized') don't return data
     if (req.body.method.includes('notifications/') || !req.body.id) {
-        res.status(202).send(); // Tell Copilot "Got the notification"
+        res.status(202).send(); 
     } else {
-        pendingResponse = res; // Hold the connection for actual tools/init
+        pendingResponse = res; 
     }
 });
 
-app.listen(8080, () => console.log("Final Bridge running on 8080"));
+app.listen(BRIDGE_PORT, () => {
+    console.log(`Final Bridge running on ${BRIDGE_PORT}`);
+    console.log(`Logging level: ${VERBOSE ? 'VERBOSE' : 'QUIET (use --verbose for full output)'}`);
+});
