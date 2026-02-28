@@ -36,4 +36,5 @@ In Copilot Studio (in your AI Agent):
 - In tools, add a MCP server with the ngrok URL as Server URL.
 - Connect and configure it and the AI agent will have access to all burp mcp tools and can access the burp suite, its logs, tabs, etc.
 
+This bridge facilitates seamless, prompt-based interaction between Copilot Agents and Burp Suite. By enabling real-time analysis of HTTP traffic via the Model Context Protocol (MCP), it allows security researchers to identify vulnerabilities and automate complex testing workflows directly from their chat interface.<br>
 Happy Hacking!
