@@ -25,7 +25,7 @@ Clone the repository: <br>
 - Install dependencies: `npm install`
 
 ### 4. Start the bridge
-- Run server.js: `node server.js`
+- Run server.js: `node server.js` (Run with `node server.js --verbose` to see full JAR traffic)
 
 ### 5. Expose the Bridge
 - Run ngrok for tunneling the Copilot Agent's request:<br>
