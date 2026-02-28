@@ -5,7 +5,7 @@ A specialized Node.js bridge that enables Microsoft Copilot Studio (Copilot Agen
 Copilot AI Agent (Cloud) → ngrok (Tunnel) → Node.js Bridge (Local) → Burp Proxy JAR (Stdio) → Burp Extension (SSE)
 
 ## Prerequisites
-- Burp Suite Pro/Community with MCP Server Extension.
+- Burp Suite Pro/Community with [MCP Server Extension](https://github.com/PortSwigger/mcp-server).
 - Node.js v18+.
 - Java JRE (in System PATH).
 - ngrok for local tunneling.
