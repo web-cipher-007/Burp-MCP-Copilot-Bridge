@@ -1,3 +1,24 @@
+if (process.argv.includes('--daemon')) {
+    const { spawn } = require('child_process');
+    const fs = require('fs');
+    const path = require('path');
+
+    const logFile = fs.openSync(path.join(__dirname, 'bridge.log'), 'a');
+    const errFile = fs.openSync(path.join(__dirname, 'bridge-error.log'), 'a');
+
+    const child = spawn(process.execPath, process.argv.slice(1).filter(a => a !== '--daemon'), {
+        detached: true,
+        stdio: ['ignore', logFile, errFile]
+    });
+
+    child.unref();
+    console.log(`Bridge started in background (PID: ${child.pid})`);
+    console.log(`Logs:   ${path.join(__dirname, 'bridge.log')}`);
+    console.log(`Errors: ${path.join(__dirname, 'bridge-error.log')}`);
+    process.exit(0);
+}
+
+
 const { spawn } = require('child_process');
 const express = require('express');
 
@@ -8,10 +29,12 @@ const BRIDGE_PORT = 8080;
 const app = express();
 app.use(express.json());
 
-const mcpProxy = spawn('java', ['-jar', 'mcp-proxy.jar', '--sse-url', `http://127.0.0.1:${BURP_PORT}`]);
+const mcpProxy = spawn('java', ['-jar', 'mcp-proxy.jar', '--sse-url', `http://127.0.0.1:${BURP_PORT}`], {
+    detached: process.argv.includes('--background'), 
+    stdio: ['pipe', 'pipe', 'pipe']
+});
 
 const pendingResponses = new Map();
-
 let stdoutBuffer = '';
 
 mcpProxy.stdout.on('data', (chunk) => {
@@ -62,6 +85,16 @@ app.post('/', (req, res) => {
     } else {
         pendingResponses.set(body.id, res);
     }
+});
+
+process.on('SIGTERM', () => {
+    mcpProxy.kill();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    mcpProxy.kill();
+    process.exit(0);
 });
 
 app.listen(BRIDGE_PORT, () => {
