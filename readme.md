@@ -116,6 +116,6 @@ In Copilot Studio (in your AI Agent):
 
 ---
 
-This bridge facilitates seamless, prompt-based interaction between Copilot Agents and Burp Suite. By enabling real-time analysis of HTTP traffic via the Model Context Protocol (MCP), it allows security researchers to identify vulnerabilities and automate complex testing workflows directly from their chat interface.
+This bridge facilitates seamless, prompt-based interaction between Copilot Agents and Burp Suite. By enabling real-time analysis of HTTP traffic via the Model Context Protocol (MCP), it allows security researchers to identify vulnerabilities and automate complex testing workflows directly from their chat interface, saving a lot of time.
 
 Happy Hacking!
